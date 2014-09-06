@@ -1,9 +1,9 @@
-name: 
+name: check_sms3status 
 description: "file:///README.md"
 url: "https://www.netways.org/projects/plugins"
 tags: ~
-vendor: Netways
-target: Temperature
+vendor: NETWAYS
+target: SMS
 type: Plugin
 license: gplv2
 releases: 
@@ -15,5 +15,5 @@ releases:
         name: check_sms3status.pl
         url: "file:///check_sms3status.pl"
         description: none
-        checksum: 
+        checksum: 0a712c0266c2c551cb71be74ff60f8ac
 
