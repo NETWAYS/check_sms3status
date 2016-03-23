@@ -163,7 +163,7 @@ while (<IN>) {
 	if (/\+CSQ:\s*(\d+),(\d+)/) { $signal = $1; $sigber = $2 };
     if (/\+COPS:\s*\d+,\d+,\"(.*)\"/) { $netz = $1 }
 	elsif (/\+COPS:\s*\d+,\d+,([^ ]*)/) { $netz = $1 };
-	if (!/\+CREG:\s*(0,1)/) { $unreg = TRUE };
+	if (!/\+CREG:\s*(\d,1)/) { $unreg = TRUE };
 
 
 	$sigdb = ((2*$signal)-113);
