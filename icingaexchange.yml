@@ -8,12 +8,12 @@ type: Plugin
 license: gplv2
 releases: 
   - 
-    name: 1.0
-    description: "1.0 Release"
+    name: 1.1
+    description: "1.1 Release"
     files: 
       - 
         name: check_sms3status.pl
         url: "file:///check_sms3status.pl"
         description: none
-        checksum: 0a712c0266c2c551cb71be74ff60f8ac
+        checksum: 1a704e96b9710f99beaba30a035a8cd2
 
