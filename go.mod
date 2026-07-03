@@ -3,7 +3,7 @@ module github.com/NETWAYS/check_sms3status
 go 1.26
 
 require (
-	github.com/NETWAYS/go-check v1.0.0-rc4
+	github.com/NETWAYS/go-check v1.0.0
 	github.com/spf13/cobra v1.10.2
 )
 

@@ -110,10 +110,9 @@ func checkFileAge(fileInfo os.FileInfo) *result.PartialResult {
 	fileSec := fileInfo.ModTime().Unix()
 	fileAge := nowSec - fileSec
 
-	tmpResult := &result.PartialResult{
-		Output: fmt.Sprintf("Status file was last updated %d seconds ago", fileAge),
-	}
+	tmpResult := result.NewPartialResult()
 
+	tmpResult.SetOutput(fmt.Sprintf("Status file was last updated %d seconds ago", fileAge))
 	tmpResult.SetState(check.OK)
 
 	if fileAge > maxFileAge {
@@ -160,25 +159,25 @@ func checkContent(fileContent string, warningThreshold check.Threshold, critical
 	result := result.NewPartialResult()
 
 	if !isRegistered {
-		result.Output = "Modem not registered on network"
+		result.SetOutput("Modem not registered on network")
 		result.SetState(check.Critical)
 
 		return result
 	} else if signal > 31 {
-		result.Output = "Signal strength returned an invalid value"
+		result.SetOutput("Signal strength returned an invalid value")
 		result.SetState(check.Unknown)
 	}
 
-	result.Perfdata.Add(&check.Perfdata{Label: "dbm", Value: sigdb, Uom: "", Warn: nil, Crit: nil, Min: nil, Max: nil})
-	result.Perfdata.Add(&check.Perfdata{Label: "signal", Value: math.Round(sigproc), Uom: "%", Warn: &warningThreshold, Crit: &criticalThreshold})
+	result.AddPerfdata(&check.Perfdata{Label: "dbm", Value: sigdb, Uom: "", Warn: nil, Crit: nil, Min: nil, Max: nil})
+	result.AddPerfdata(&check.Perfdata{Label: "signal", Value: math.Round(sigproc), Uom: "%", Warn: &warningThreshold, Crit: &criticalThreshold})
 
 	msg := fmt.Sprintf("Registered on network '%s' with signal strength %0.f%%", network, sigproc)
 
-	result.Output = msg
+	result.SetOutput(msg)
 
 	// bit error rate 99 means unknown
 	if sigber != 99 {
-		result.Perfdata.Add(&check.Perfdata{Label: "bit_error_rate", Value: sigber})
+		result.AddPerfdata(&check.Perfdata{Label: "bit_error_rate", Value: sigber})
 	}
 
 	//nolint: gocritic
@@ -186,7 +185,7 @@ func checkContent(fileContent string, warningThreshold check.Threshold, critical
 		result.SetState(check.Critical)
 	} else if warningThreshold.DoesViolate(sigproc) {
 		result.SetState(check.Warning)
-		result.Output = msg
+		result.SetOutput(msg)
 	} else {
 		result.SetState(check.OK)
 	}

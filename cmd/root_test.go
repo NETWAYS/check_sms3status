@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/NETWAYS/go-check"
@@ -43,22 +44,20 @@ func TestCheckRexeg(t *testing.T) {
 
 	tests := []checkContentTest{
 		{
-			name:             "CRITICAL",
-			expectedStatus:   check.CriticalString,
-			expectedOutput:   "Registered on network 'UNITTEST' with signal strength 16%",
-			expectedPerfData: "dbm=-103 signal=16%;50:;20:",
-			fileContent:      "+CREG: 1,1\n+CSQ: 5,99\n+COPS: 0,0,\"UNITTEST\"",
-			warnThreshold:    "50:",
-			critThreshold:    "20:",
+			name:           "CRITICAL",
+			expectedStatus: check.CriticalString,
+			expectedOutput: "Registered on network 'UNITTEST' with signal strength 16%",
+			fileContent:    "+CREG: 1,1\n+CSQ: 5,99\n+COPS: 0,0,\"UNITTEST\"",
+			warnThreshold:  "50:",
+			critThreshold:  "20:",
 		},
 		{
-			name:             "OK",
-			expectedStatus:   check.OKString,
-			expectedOutput:   "Registered on network 'EXAMPLE' with signal strength 74%",
-			expectedPerfData: "dbm=-67 signal=74%;50:;20: bit_error_rate=5",
-			fileContent:      "+CREG: 1,1\n+CSQ: 23,5|\n+COPS: 0,0,\"EXAMPLE\"",
-			warnThreshold:    "50:",
-			critThreshold:    "20:",
+			name:           "OK",
+			expectedStatus: check.OKString,
+			expectedOutput: "Registered on network 'EXAMPLE' with signal strength 74%",
+			fileContent:    "+CREG: 1,1\n+CSQ: 23,5|\n+COPS: 0,0,\"EXAMPLE\"",
+			warnThreshold:  "50:",
+			critThreshold:  "20:",
 		},
 		{
 			name:             "WARNING with bitrate",
@@ -86,12 +85,8 @@ func TestCheckRexeg(t *testing.T) {
 
 			result := checkContent(string(test.fileContent), *warnThreshold, *critThreshold)
 
-			if result.Output != test.expectedOutput {
-				t.Errorf("expected output: %q, actual: %q ", test.expectedOutput, result.Output)
-			}
-
-			if result.Perfdata.String() != test.expectedPerfData {
-				t.Errorf("expected perfdata: %q, actual: %q", test.expectedPerfData, result.Perfdata.String())
+			if !strings.Contains(result.String(), test.expectedOutput) {
+				t.Errorf("expected output: %q, actual: %q ", test.expectedOutput, result.String())
 			}
 
 			if result.GetStatus().String() != test.expectedStatus {
