@@ -14,13 +14,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var warning, critical, statusfilePath string
-var maxFileAge int64
+type Config struct {
+	Warning        string
+	Critical       string
+	StatusfilePath string
+	MaxFileAge     int64
+}
 
-var csqRe = regexp.MustCompile(`\+CSQ:\s*(\d+),(\d+)`)
-var copsReQuoted = regexp.MustCompile(`\+COPS:\s*\d+,\d+,"([^"]*)"`)
-var copsReUnquoted = regexp.MustCompile(`\+COPS:\s*\d+,\d+,([^"]+)`)
-var cregRe = regexp.MustCompile(`\+CREG:\s*(\d,(?:1|5))`)
+var config Config
+
+const (
+	csqPattern   = `\+CSQ:\s*(\d+),(\d+)`
+	copsQuoted   = `\+COPS:\s*\d+,\d+,"([^"]*)"`
+	copsUnquoted = `\+COPS:\s*\d+,\d+,([^"]+)`
+	cregPattern  = `\+CREG:\s*(\d,(?:1|5))`
+)
+
+var (
+	csqRe          = regexp.MustCompile(csqPattern)
+	copsReQuoted   = regexp.MustCompile(copsQuoted)
+	copsReUnquoted = regexp.MustCompile(copsUnquoted)
+	cregRe         = regexp.MustCompile(cregPattern)
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "check_sms3status",
@@ -31,20 +46,20 @@ check_sms3status --warning 30 --critical 50 --statusfile /path/to/statusfile
 `,
 	Run: func(_ *cobra.Command, _ []string) {
 		// Parse the thresholds add exit if there's an issue
-		warnThreshold, warningThresholdErr := check.ParseThreshold(warning)
+		warnThreshold, warningThresholdErr := check.ParseThreshold(config.Warning)
 
 		if warningThresholdErr != nil {
 			check.ExitError(warningThresholdErr)
 		}
 
-		critThreshold, critThresholdErr := check.ParseThreshold(critical)
+		critThreshold, critThresholdErr := check.ParseThreshold(config.Critical)
 
 		if critThresholdErr != nil {
 			check.ExitError(critThresholdErr)
 		}
 
 		// Get the file content and info
-		content, fileInfo, contentErr := getFileContentAndInfo(statusfilePath)
+		content, fileInfo, contentErr := getFileContentAndInfo(config.StatusfilePath)
 
 		if contentErr != nil {
 			check.ExitError(contentErr)
@@ -72,10 +87,10 @@ func Execute(version string) {
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&statusfilePath, "statusfile", "s", "", "Path to the status file")
-	rootCmd.Flags().StringVarP(&warning, "warning", "w", "40:", "Warning threshold for signal strength in percent")
-	rootCmd.Flags().StringVarP(&critical, "critical", "c", "20:", "Critical threshold for signal strength in percent")
-	rootCmd.Flags().Int64VarP(&maxFileAge, "age", "a", 300, "The maximum age of the file in seconds (default 300)")
+	rootCmd.Flags().StringVarP(&config.StatusfilePath, "statusfile", "s", "", "Path to the status file")
+	rootCmd.Flags().StringVarP(&config.Warning, "warning", "w", "40:", "Warning threshold for signal strength in percent")
+	rootCmd.Flags().StringVarP(&config.Critical, "critical", "c", "20:", "Critical threshold for signal strength in percent")
+	rootCmd.Flags().Int64VarP(&config.MaxFileAge, "age", "a", 300, "The maximum age of the file in seconds (default 300)")
 
 	_ = rootCmd.MarkFlagRequired("statusfile")
 }
@@ -88,9 +103,9 @@ func Usage(cmd *cobra.Command, _ []string) {
 
 // getFileContentAndInfo returns the files content and file info
 func getFileContentAndInfo(filePath string) ([]byte, os.FileInfo, error) {
-	content, contentErr := os.ReadFile(filePath)
-
 	var fileInfo os.FileInfo
+
+	content, contentErr := os.ReadFile(filePath)
 
 	if contentErr != nil {
 		return content, fileInfo, contentErr
@@ -115,7 +130,7 @@ func checkFileAge(fileInfo os.FileInfo) *result.PartialResult {
 	tmpResult.SetOutput(fmt.Sprintf("Status file was last updated %d seconds ago", fileAge))
 	tmpResult.SetState(check.OK)
 
-	if fileAge > maxFileAge {
+	if fileAge > config.MaxFileAge {
 		tmpResult.SetState(check.Critical)
 	}
 
@@ -132,8 +147,14 @@ func checkContent(fileContent string, warningThreshold check.Threshold, critical
 
 	lines := strings.SplitSeq(fileContent, "\n")
 
+	hasCSQ := false
+	hasCREG := false
+	hasCOPS := false
+
 	for line := range lines {
 		if matches := csqRe.FindStringSubmatch(line); matches != nil {
+			hasCSQ = true
+
 			val, err := strconv.Atoi(matches[1])
 			if err == nil {
 				signal = val
@@ -144,12 +165,15 @@ func checkContent(fileContent string, warningThreshold check.Threshold, critical
 				sigber = val
 			}
 		} else if matches := copsReQuoted.FindStringSubmatch(line); matches != nil {
+			hasCOPS = true
 			network = matches[1]
 		} else if matches := copsReUnquoted.FindStringSubmatch(line); matches != nil {
+			hasCOPS = true
 			network = matches[1]
 		}
 
 		if strings.Contains(line, "+CREG:") && !cregRe.MatchString(line) {
+			hasCREG = true
 			isRegistered = false
 		}
 	}
@@ -157,6 +181,13 @@ func checkContent(fileContent string, warningThreshold check.Threshold, critical
 	sigdb := (2 * signal) - 113
 	sigproc := float64(signal*100) / 31.0
 	result := result.NewPartialResult()
+
+	if !hasCSQ && !hasCREG && !hasCOPS {
+		result.SetOutput("Status file has incomplete structure")
+		result.SetState(check.Unknown)
+
+		return result
+	}
 
 	if !isRegistered {
 		result.SetOutput("Modem not registered on network")
