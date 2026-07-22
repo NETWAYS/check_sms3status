@@ -1,0 +1,10 @@
+.idea
+\#*
+.\#*
+
+vendor/
+coverage.html
+coverage.out
+dist/
+
+check_sms3status
