@@ -11,8 +11,6 @@ builds:
       - arm64
     goos:
       - linux
-      - windows
-      - darwin
     ldflags:
       - >-
         -s -w -X main.version={{.Version}}
