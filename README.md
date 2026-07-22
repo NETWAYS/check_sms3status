@@ -23,13 +23,14 @@ Flags:
   -v, --version             version for check_sms3status
   -w, --warning string      Warning threshold for signal strength in percent (default "40:")
 ```
-The warning and critical flags support thresholds in the common Nagios format (e.g. ~:10).
-The check works in a way that lower values are more critical than higher values. 
-Please always use a colon
-at the end of the thresholds if you don't know what you are doing.
 
+The warning and critical flags support thresholds in the common Nagios format (e.g. ~:10).
+The check works in a way that lower values are more critical than higher values.
+Thus you need to use a colon at the end of the thresholds to check for negative values.
 
 ## Examples
+
+Check the signal strength being below 50% (warning) and below 30% (critical)
 
 ```bash
 check_sms3status --warning 50: --critical 30: --statusfile /path/to/statusfile
